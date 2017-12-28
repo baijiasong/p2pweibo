@@ -171,8 +171,9 @@ def main(username):
     global peer
     flaskPort = 5000
 
-    peer = Peer(username=username, maxpeers=5, serverport=19840)
     blockchainPeer = BlockChainPeer(port=flaskPort)
+
+    # peer = Peer(username=username, maxpeers=5, serverport=19840)
     # addTestData()
 
     # peer.follow('user0')
@@ -180,9 +181,9 @@ def main(username):
     # peer.post('@dpatrickx Post 0')
     # peer.repost('Repost 0', 'user1', 'Post 0')
 
-    peer.sendPriMessage('dpatrickx', 'hello world')
-
+    # peer.sendPriMessage('dpatrickx', 'hello world')
     app.run(host='127.0.0.1', port=flaskPort, debug=False)
+    blockchainPeer.mainloop()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
