@@ -9,11 +9,10 @@ import requests
 import time
 from  uuid import uuid4
 
-listenPeerPort = 23123
-flaskPort = 5000
-
 class BlockChainPeer:
-    def __init__(self):
+    def __init__(self, port):
+        self.port = port
+        self.ip = self.__getHostIp()
         self.peers = {}
         self.chain = []
         self.previousHash = None
@@ -78,9 +77,7 @@ class BlockChainPeer:
             'block': block
         }
         for nodeid in self.peers:
-            if nodeid == self.nodeid : continue
-            try:
-                requests.post('http://%s:%d/block' % (self.peers[nodeid], flaskPort), json=data)
+            if nodeid == self.nodeid : continu
             except:
                 continue
 
@@ -99,9 +96,7 @@ class BlockChainPeer:
         if self.mutex.acquire(1):
             self.ifMine = False
             self.thisRound = False
-            for nodeid in self.peers:
-                if nodeid == self.nodeid : continue
-                response = requests.get('http://%s:%d/chain' % (self.peers[nodeid], flaskPort))
+            for nodeid in self.peers
                 if response.status_code == 200:
                     length = response.json()['length']
                     if length > len(self.chain):
@@ -122,9 +117,7 @@ class BlockChainPeer:
                 'ip': ip,
                 'rtt': rtt
             }
-            for node in self.peers:
-                if node == self.nodeid : continue
-                requests.post('http://%s:%d/appendpeer' % (self.peers[node], flaskPort), json=data)
+            for node in self.peers
         print 'Add Peer', nodeid, ip
         self.peers[nodeid] = ip
 
@@ -135,9 +128,7 @@ class BlockChainPeer:
 
     def addUsername(self, username):
         data = {'username' : username}
-        for nodeid in serf.peers:
-            if nodeid == self.nodeid : continue
-            requests.post('http://%s:%d/appendusername', % (self.peers[node], flaskPort), json=data)
+        for nodeid in serf.peers
 
 
     @staticmethod
@@ -150,9 +141,7 @@ class BlockChainPeer:
             s.close()
         return ip
 
-    def __addPeers(self, ip):
-        print 'Add peers from ', ip
-        response = requests.get('http://%s:%d/getpeers' % (ip, flaskPort))
+    def __addPeers(self, ip)
         if response.status_code == 200:
             length = response.json()['length']
             peers = response.json()['peers']
@@ -171,20 +160,15 @@ class BlockChainPeer:
         peerips = open('peers.txt').read().split('\n')
         for peerip in peerips:
             if len(peerip) == 0 : continue
+            if peerip == self.ip : continue
             print 'Add peer to ', peerip
-            requests.post('http://%s:%d/appendpeer' % (peerip, flaskPort), json=data)
+            requests.post('http://%s:%d/appendpeer' % (peerip, self.port), json=data)
             self.__addPeers(peerip)
         print 'Peers:', self.peers
         # initial block
         if len(self.peers) <= 1:
             self.__newBlock(nouce=0, previousHash='1')
         self.__syncBlockchain()
-
-    def listenTransactions(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.bind(('', listenTransactionPort))
 
     def mainloop(self):
         print 'Nodeid', self.nodeid

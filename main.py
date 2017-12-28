@@ -11,6 +11,7 @@ import commands
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
 peer = None
+blockchainPeer = None
 
 @app.route('/hello')
 def hello():
@@ -168,8 +169,10 @@ def addTestData():
 
 def main(username):
     global peer
+    flaskPort = 5000
 
     peer = Peer(username=username, maxpeers=5, serverport=19840)
+    blockchainPeer = BlockChainPeer(port=flaskPort)
     # addTestData()
 
     # peer.follow('user0')
@@ -179,7 +182,7 @@ def main(username):
 
     peer.sendPriMessage('dpatrickx', 'hello world')
 
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    app.run(host='127.0.0.1', port=flaskPort, debug=False)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
