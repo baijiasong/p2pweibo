@@ -1,44 +1,60 @@
 from peers import *
+from flask.ext.bootstrap import Bootstrap
+from flask import Flask, jsonify, request, render_template
 
 import sys
 import hashlib
 import json
 import requests
 import commands
-from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+bootstrap = Bootstrap(app)
 peer = None
+
+@app.route('/hello')
+def hello():
+    return render_template('hello.html')
+
+@app.route('/', methods=['GET'])
+def homepage():
+    global peer
+    return jsonify(peer.mainpage()), 200
+
+@app.route('/user/<username>', methods=['GET'])
+def userpage(username):
+    global peer
+    return jsonify(peer.userpage(username)), 200
 
 @app.route('/fans', methods=['GET'])
 def fans():
     global peer
-    r = peer.getFans()
     response = {
-        'data' : r,
+        'data' : peer.getFans()
     }
     return jsonify(response), 200
 
 @app.route('/follows', methods=['GET'])
 def follows():
     global peer
-    return jsonify(str(peer.getFollows())), 200
-
-@app.route('/notice', methods=['GET'])
-def notice():
-    global peer
-    r = peer.getNotices()
     response = {
-        'data' : r
+        'data' : peer.getFollows()
     }
     return jsonify(response), 200
 
-@app.route('/getpost', methods=['GET'])
-def getPost():
+@app.route('/messages', methods=['GET'])
+def getMessages():
     global peer
-    r = peer.getPost()
     response = {
-        'data', r
+        'data' : peer.getPriMessages()
+    }
+    return jsonify(response), 200
+
+@app.route('/notices', methods=['GET'])
+def notice():
+    global peer
+    response = {
+        'data' : peer.getNotices()
     }
     return jsonify(response), 200
 
@@ -101,6 +117,7 @@ def priMessage():
     }
     return jsonify(response), 200
 
+
 def addTestData():
     global peer
     ### Add user0
@@ -159,20 +176,10 @@ def main(username):
     # peer.follow('user1')
     # peer.post('@dpatrickx Post 0')
     # peer.repost('Repost 0', 'user1', 'Post 0')
-    arr = peer.getPost(20)
 
     peer.sendPriMessage('dpatrickx', 'hello world')
-    messages = peer.getPriMessages()
-    for i in messages:
-        print i
 
     app.run(host='127.0.0.1', port=5000, debug=False)
-
-    # try:
-    #     while t.isAlive():
-    #         pass
-    # except KeyboardInterrupt:
-    #     print('stopped by keyboard')
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:

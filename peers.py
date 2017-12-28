@@ -42,21 +42,43 @@ class Peer:
         self.priMessages = None
         self.allUsers = None
 
-        self._getFans()
-        self._getFollows()
-        self._getAllPosts()
-        self._getAllNotices()
-        self._getPriMessages()
-
         r = self.getKademlia(self.userhash)
         if r.text.startswith('\n<html>') == True:
             self.signUp()
+
+        self.__fresh()
+
+    def mainpage(self):
+        self.__fresh()
+        r = {}
+        r['username'] = self.username
+        r['fans'] = len(self.fans)
+        r['follows'] = len(self.follows)
+        r['postsnum'] = len(self.allPosts)
+        r['posts'] = self.allPosts[ : 10]
+        return r
+
+    def userpage(self, username):
+        r = {}
+        r['username'] = username
+        r['fans'] = len(self.fans)
+        r['follows'] = len(self.follows)
+        r['postsnum'] = len(self.allPosts)
+        r['posts'] = self.allPosts[ : 10]
+        return r
 
     def getKademlia(self, key):
         return requests.get('http://127.0.0.1:1984/' + key)
 
     def postKademlia(self, key, value):
         return requests.post('http://127.0.0.1:1984/' + key, data=value)
+
+    def __fresh(self):
+        self.__getFans()
+        self.__getFollows()
+        self.__getAllPosts()
+        self.__getAllNotices()
+        self.__getPriMessages()
 
     def initHash(self):
         self.userhash = hashlib.sha256(self.username).hexdigest()
@@ -76,7 +98,7 @@ class Peer:
         self.postKademlia(key=self.noticehash, value='{}')
 
     ### ATHash entry format: "ATSB||timestamp||username content"
-    def _getAllNotices(self):
+    def __getAllNotices(self):
         notices = json.loads(str(self.getKademlia(self.noticehash).text))
         q = []
         for rank in notices:
@@ -90,10 +112,10 @@ class Peer:
         self.notices = []
         while q:
             item = heapq.heappop(q)
-            self.notices.append(item)
+            self.notices.insert(0, item[1])
 
     def getNotices(self):
-        if self.notices == None : self._getAllNotices()
+        self.__getAllNotices()
         return self.notices
 
     def _at(self, comment, refe):
@@ -110,7 +132,7 @@ class Peer:
             self.postKademlia(key, json.dumps(ps))
 
     ### Private Message Format: "timestamp||username content"
-    def _getPriMessages(self):
+    def __getPriMessages(self):
         messages = json.loads(str(self.getKademlia(self.privhash).text))
         q = []
         for rank in messages:
@@ -122,15 +144,15 @@ class Peer:
         self.priMessages = []
         while q:
             item = heapq.heappop(q)
-            self.priMessages.append(item)
+            self.priMessages.insert(0, item[1])
 
     def getPriMessages(self):
-        if self.priMessages == None : self._getPriMessages()
+        self.__getPriMessages()
         return self.priMessages
 
     def sendPriMessage(self, username, content):
-        if self.fans == None : self._getFans()
-        if self.follows == None : self._getFollows()
+        if self.fans == None : self.__getFans()
+        if self.follows == None : self.__getFollows()
         if not (username in self.fans or username in self.follows) : return
         content = str(int(time.time())) + username + ' ' + content
         key = hashlib.sha256(username + 'priv').hexdigest()
@@ -155,9 +177,9 @@ class Peer:
         self._at(content, content)
         self._post(content)
 
-    def _getAllPosts(self):
+    def __getAllPosts(self):
         q = []
-        if self.follows == None : self._getFollows()
+        self.__getFollows()
         tempUsers = self.follows
         tempUsers.append(self.username)
         for f in tempUsers:
@@ -177,14 +199,14 @@ class Peer:
         self.allPosts = []
         while q:
             item = heapq.heappop(q)
-            self.allPosts.append(item)
+            self.allPosts.insert(0, item[1])
 
     def getPost(self, number):
-        if self.allPosts == None: self._getAllPosts()
+        self.__getAllPosts()
         return self.allPosts[ : number]
 
     ### fans/follows db: { 'data' : [user0, user1, ... , usern] }
-    def _getFans(self):
+    def __getFans(self):
         fs = json.loads(str(self.getKademlia(self.fanshash).text))
         if fs.has_key('data'):
             self.fans = fs['data']
@@ -192,10 +214,10 @@ class Peer:
             self.fans = []
 
     def getFans(self):
-        if self.fans == None : self._getFans()
+        self.__getFans()
         return self.fans
 
-    def _getFollows(self):
+    def __getFollows(self):
         fs = json.loads(str(self.getKademlia(self.followhash).text))
         if fs.has_key('data'):
             self.follows = fs['data']
@@ -203,7 +225,7 @@ class Peer:
             self.follows = []
 
     def getFollows(self):
-        if self.follows == None : self._getFollows()
+        self.__getFollows()
         return self.follows
 
     def follow(self, username):
