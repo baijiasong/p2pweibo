@@ -161,7 +161,7 @@ class BlockChainPeer:
 
     def __addPeers(self, ip):
         print 'Add peers from ', ip
-        response = requests.get('http://%s:%d/getpeers' % (ip, flaskPort))
+        response = requests.get('http://%s:%d/getpeers' % (ip, self.port))
         if response.status_code == 200:
             length = response.json()['length']
             peers = response.json()['peers']
