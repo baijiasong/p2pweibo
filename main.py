@@ -233,7 +233,7 @@ def main(username):
 
     # peer.sendPriMessage('dpatrickx', 'hello world')
     blockchainPeer.mainloop()
-    app.run(host='127.0.0.1', port=flaskPort, debug=False)
+    app.run(host='0.0.0.0', port=flaskPort, debug=False)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
