@@ -11,6 +11,7 @@ from  uuid import uuid4
 
 class BlockChainPeer:
     def __init__(self, port):
+        self.allusers = []
         self.port = port
         self.ip = self.__getHostIp()
         self.peers = {}
@@ -20,7 +21,6 @@ class BlockChainPeer:
         self.usernames = []
         self.mutex = threading.Lock()
         self.ifMine = None
-
         self.peers[self.nodeid] = self.__getHostIp()
 
     @property
@@ -41,7 +41,7 @@ class BlockChainPeer:
                 'previousHash': previousHash,
                 'author': self.nodeid
             }
-            self.current_transactions = []
+            self.usernames = []
             self.chain.append(block)
             self.mutex.release()
             return block
@@ -77,7 +77,9 @@ class BlockChainPeer:
             'block': block
         }
         for nodeid in self.peers:
-            if nodeid == self.nodeid : continu
+            if nodeid == self.nodeid : continue
+            try:
+                requests.post('http://%s:%d/block' % (self.peers[nodeid], self.port), json=data)
             except:
                 continue
 
@@ -96,7 +98,9 @@ class BlockChainPeer:
         if self.mutex.acquire(1):
             self.ifMine = False
             self.thisRound = False
-            for nodeid in self.peers
+            for nodeid in self.peers:
+                if nodeid == self.nodeid : continue
+                response = requests.get('http://%s:%d/chain' % (self.peers[nodeid], self.port))
                 if response.status_code == 200:
                     length = response.json()['length']
                     if length > len(self.chain):
@@ -106,6 +110,10 @@ class BlockChainPeer:
             t.setDaemon(True)
             t.start()
         self.mutex.release()
+        self.allusers = []
+        for block in self.chain:
+            self.allusers += block['usernames']
+        print 'AllUsers', self.allusers
 
     def appendPeer(self, nodeid, ip, rtt):
         if nodeid == self.nodeid : return
@@ -117,7 +125,9 @@ class BlockChainPeer:
                 'ip': ip,
                 'rtt': rtt
             }
-            for node in self.peers
+            for node in self.peers:
+                if node == self.nodeid : continue
+                requests.post('http://%s:%d/appendpeer' % (self.peers[node], self.port), json=data)
         print 'Add Peer', nodeid, ip
         self.peers[nodeid] = ip
 
@@ -125,11 +135,19 @@ class BlockChainPeer:
         if self.mutex.acquire(1):
             self.usernames.append(username)
             self.mutex.release()
+        print self.allusers
 
-    def addUsername(self, username):
-        data = {'username' : username}
-        for nodeid in serf.peers
-
+    def addUsername(self, username, rtt):
+        if not username in self.usernames : self.__addUsername(username)
+        rtt -= 1
+        if rtt <= 0 : return
+        data = {
+            'username' : username,
+            'rtt' : rtt
+        }
+        for nodeid in self.peers:
+            if nodeid == self.nodeid : continue
+            requests.post('http://%s:%d/addusername' % (self.peers[nodeid], self.port), json=data)
 
     @staticmethod
     def __getHostIp():
@@ -141,7 +159,7 @@ class BlockChainPeer:
             s.close()
         return ip
 
-    def __addPeers(self, ip)
+    def __addPeers(self, ip):
         if response.status_code == 200:
             length = response.json()['length']
             peers = response.json()['peers']

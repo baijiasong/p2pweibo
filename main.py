@@ -1,5 +1,5 @@
 from peers import *
-from flask.ext.bootstrap import Bootstrap
+from blockchainPeers import *
 from flask import Flask, jsonify, request, render_template
 
 import sys
@@ -9,9 +9,58 @@ import requests
 import commands
 
 app = Flask(__name__)
-bootstrap = Bootstrap(app)
 peer = None
 blockchainPeer = None
+
+@app.route('/appendpeer', methods=['POST'])
+def appendPeer():
+    global blockchainPeer
+    values = request.get_json()
+    required = ['nodeid', 'ip', 'rtt']
+    if not all(k in values for k in required) : return 'Missing Values', 400
+    blockchainPeer.appendPeer(nodeid=values['nodeid'], ip=values['ip'], rtt=values['rtt'])
+    response = {'Result' : 'Peer Appended'}
+    return jsonify(response), 200
+
+@app.route('/getpeers', methods=['GET'])
+def getPeers():
+    global blockchainPeer
+    response = {
+        'peers': blockchainPeer.peers,
+        'length': len(blockchainPeer.peers)
+    }
+    return jsonify(response), 200
+
+@app.route('/addusername', methods=['POST'])
+def addUsername():
+    global blockchainPeer
+    values = request.get_json()
+    required = ['username', 'rtt']
+    if not all(k in values for k in required) : return 'Missing Values', 400
+    blockchainPeer.addUsername(username=values['username'], rtt=int(values['rtt']))
+    response = {'Result' : 'Username Appended'}
+    return jsonify(response), 200
+
+@app.route('/chain', methods=['GET'])
+def getChain():
+    global blockchainPeer
+    response = {
+        'chain': blockchainPeer.chain,
+        'length': len(blockchainPeer.chain),
+    }
+    return jsonify(response), 200
+
+@app.route('/block', methods=['POST'])
+def appendBlock():
+    global blockchainPeer
+    values = request.get_json()
+    required = ['block']
+    if not all(k in values for k in required) : return 'Missing Values', 400
+    blockchainPeer.appendBlock(values['block'])
+    response = {'Result' : 'Block Appended'}
+    return jsonify(response), 200
+
+# =========================================
 
 @app.route('/hello')
 def hello():
@@ -169,6 +218,7 @@ def addTestData():
 
 def main(username):
     global peer
+    global blockchainPeer
     flaskPort = 5000
 
     blockchainPeer = BlockChainPeer(port=flaskPort)
@@ -182,8 +232,8 @@ def main(username):
     # peer.repost('Repost 0', 'user1', 'Post 0')
 
     # peer.sendPriMessage('dpatrickx', 'hello world')
-    app.run(host='127.0.0.1', port=flaskPort, debug=False)
     blockchainPeer.mainloop()
+    app.run(host='127.0.0.1', port=flaskPort, debug=False)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:

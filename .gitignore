@@ -1,3 +1,4 @@
 *.pyc
 p2pServer.py
 test.py
+peers.txt
