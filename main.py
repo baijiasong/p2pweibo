@@ -1,5 +1,8 @@
+#encoding: utf-8
+
 from peers import *
 from blockchainPeers import *
+from flask.ext.bootstrap import Bootstrap
 from flask import Flask, jsonify, request, render_template
 
 import sys
@@ -9,6 +12,7 @@ import requests
 import commands
 
 app = Flask(__name__)
+bootstrap = Bootstrap(app)
 peer = None
 blockchainPeer = None
 
@@ -33,12 +37,14 @@ def getPeers():
 
 @app.route('/addusername', methods=['POST'])
 def addUsername():
+    print 'adduesrname flask CALL'
     global blockchainPeer
     values = request.get_json()
     required = ['username', 'rtt']
     if not all(k in values for k in required) : return 'Missing Values', 400
     blockchainPeer.addUsername(username=values['username'], rtt=int(values['rtt']))
     response = {'Result' : 'Username Appended'}
+    print 'Username Added'
     return jsonify(response), 200
 
 @app.route('/chain', methods=['GET'])
@@ -62,35 +68,30 @@ def appendBlock():
 
 # =========================================
 
-@app.route('/hello')
-def hello():
-    return render_template('hello.html')
-
 @app.route('/', methods=['GET'])
 def homepage():
+    global peer
+    return render_template('index.html', data=peer.mainpage()), 200
+
+@app.route('/mainpage', methods=['GET'])
+def mainpage():
     global peer
     return jsonify(peer.mainpage()), 200
 
 @app.route('/user/<username>', methods=['GET'])
 def userpage(username):
     global peer
-    return jsonify(peer.userpage(username)), 200
+    return render_template('user.html', data=peer.userpage(username)), 200
 
 @app.route('/fans', methods=['GET'])
 def fans():
     global peer
-    response = {
-        'data' : peer.getFans()
-    }
-    return jsonify(response), 200
+    return render_template('fans.html', name=u'被关注:', data=peer.getFans()), 200
 
 @app.route('/follows', methods=['GET'])
 def follows():
     global peer
-    response = {
-        'data' : peer.getFollows()
-    }
-    return jsonify(response), 200
+    return render_template('fans.html', name=u'关注:', data=peer.getFollows()), 200
 
 @app.route('/messages', methods=['GET'])
 def getMessages():
@@ -107,6 +108,8 @@ def notice():
         'data' : peer.getNotices()
     }
     return jsonify(response), 200
+
+# ==============================================
 
 @app.route('/follow', methods=['POST'])
 def follow():
@@ -190,7 +193,7 @@ def addTestData():
     posts['0'] = '1513424378User0 Post 0'
     posts['1'] = '1513425378User0 Post 1'
     posts['2'] = '1513426378User0 Post 2'
-    posts['3'] = '1513427378User0 Post 3//RefeUser Refe Content@dpatrickx '
+    posts['3'] = '1513427378User0 Post 3//user1 Refe Content @dpatrickx '
     peer.postKademlia(posthash0, json.dumps(posts))
 
     ### Add User1
@@ -213,30 +216,29 @@ def addTestData():
     posts['0'] = '1513424378User1 Post 0'
     posts['1'] = '1513425378User1 Post 1'
     posts['2'] = '1513426378User1 Post 2'
-    posts['3'] = '1513427378User1 Post 3//RefeUser Refe Content @dpatrickx '
+    posts['3'] = '1513427378User1 Post 3//user0 Refe Content @dpatrickx '
     peer.postKademlia(posthash1, json.dumps(posts))
 
-def main(username):
+def main(username, testdata):
     global peer
     global blockchainPeer
     flaskPort = 5000
 
-    blockchainPeer = BlockChainPeer(port=flaskPort)
+    # blockchainPeer = BlockChainPeer(port=flaskPort)
+    # blockchainPeer.mainloop()
 
-    # peer = Peer(username=username, maxpeers=5, serverport=19840)
-    # addTestData()
+    peer = Peer(username=username)
 
-    # peer.follow('user0')
-    # peer.follow('user1')
-    # peer.post('@dpatrickx Post 0')
-    # peer.repost('Repost 0', 'user1', 'Post 0')
+    if testdata == '1':
+        addTestData()
+        peer.follow('user0')
+        peer.follow('user1')
 
     # peer.sendPriMessage('dpatrickx', 'hello world')
-    blockchainPeer.mainloop()
-    app.run(host='0.0.0.0', port=flaskPort, debug=False)
+    app.run(host='0.0.0.0', port=flaskPort, debug=False, threaded=True)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print "%s username" % sys.argv[0]
         sys.exit(-1)
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2])

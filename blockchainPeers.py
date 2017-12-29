@@ -135,10 +135,14 @@ class BlockChainPeer:
         if self.mutex.acquire(1):
             self.usernames.append(username)
             self.mutex.release()
-        print self.allusers
+        print self.usernames
 
     def addUsername(self, username, rtt):
-        if not username in self.usernames : self.__addUsername(username)
+        print 'addUsername CALL'
+        if not username in self.usernames:
+            self.__addUsername(username)
+        else:
+            return
         rtt -= 1
         if rtt <= 0 : return
         data = {
@@ -147,7 +151,9 @@ class BlockChainPeer:
         }
         for nodeid in self.peers:
             if nodeid == self.nodeid : continue
+            print 'report to', self.peers[nodeid]
             requests.post('http://%s:%d/addusername' % (self.peers[nodeid], self.port), json=data)
+            print 'report end'
 
     @staticmethod
     def __getHostIp():
